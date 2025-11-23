@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IELTS Writing Assistant (Free)</title>
+    <!-- Load Tailwind CSS for fast, responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for a polished look */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f9;
+        }
+        .container-card {
+            background: #ffffff;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05), 0 5px 15px rgba(0, 0, 0, 0.03);
+            border-radius: 1.5rem;
+        }
+        .band-score {
+            font-size: 3rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+        textarea {
+            min-height: 200px;
+        }
+        .criteria-score {
+            font-weight: 600;
+            color: #1f2937; /* Dark gray */
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-gray-800">IELTS Writing Band Score Checker</h1>
+            <p class="text-lg text-gray-500 mt-2">Get instant scores, detailed mistakes, and personalized feedback from an AI examiner.</p>
+        </header>
+
+        <!-- Main Content Grid -->
+        <div id="app-container" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Input Panel (Task 1 & 2) -->
+            <div class="lg:col-span-2 space-y-8">
+                <!-- Task 1 Input -->
+                <div class="container-card p-6">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Task 1: Report or Letter</h2>
+                    <p class="text-sm text-gray-500 mb-3">Minimum 150 words. E.g., Describe a chart, map, or write a letter.</p>
+                    <textarea id="task1-prompt" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 mb-4" placeholder="Enter the Task 1 Prompt/Question here..."></textarea>
+                    <textarea id="task1-essay" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Paste your Task 1 essay response here..."></textarea>
+                </div>
+
+                <!-- Task 2 Input -->
+                <div class="container-card p-6">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Task 2: Essay</h2>
+                    <p class="text-sm text-gray-500 mb-3">Minimum 250 words. E.g., Discuss two views, agree/disagree, or problem/solution.</p>
+                    <textarea id="task2-prompt" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 mb-4" placeholder="Enter the Task 2 Prompt/Question here..."></textarea>
+                    <textarea id="task2-essay" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Paste your Task 2 essay response here..."></textarea>
+                </div>
+
+                <!-- Action Button -->
+                <div class="text-center">
+                    <button id="check-button" class="px-8 py-3 bg-blue-600 text-white font-bold rounded-full text-xl hover:bg-blue-700 transition duration-300 shadow-lg shadow-blue-500/50 disabled:bg-gray-400">
+                        Check My Score
+                    </button>
+                    <p id="word-count-error" class="text-red-500 mt-3 hidden">Please ensure Task 1 has 150+ words and Task 2 has 250+ words.</p>
+                </div>
+            </div>
+
+            <!-- Results Panel (Always visible on the right) -->
+            <div id="results-panel" class="container-card p-6 lg:col-span-1 min-h-full">
+                <div id="loading-spinner" class="hidden text-center py-10">
+                    <div class="animate-spin inline-block w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+                    <p class="mt-4 text-blue-600 font-semibold">Analyzing your essays... This may take a moment.</p>
+                </div>
+                
+                <div id="initial-message" class="text-center py-10">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 text-blue-400 mx-auto mb-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 17.29a3.75 3.75 0 01-1.55 1.638L4.25 20.941l1.687-1.688a1.875 1.875 0 012.652-2.652l4.897-4.898zM12 18a6 6 0 100-12 6 6 0 000 12z" />
+                    </svg>
+                    <h3 class="text-xl font-semibold text-gray-700">Your IELTS Score Awaits</h3>
+                    <p class="text-gray-500 mt-2">Enter your prompt and essay in the left panels and click 'Check My Score' to begin your assessment.</p>
+                </div>
+
+                <!-- Results will be injected here -->
+                <div id="results-content" class="hidden">
+                    <!-- Overall Score Card -->
+                    <div class="text-center p-4 mb-6 bg-blue-50 rounded-xl border border-blue-200">
+                        <p class="text-blue-600 text-xl font-semibold">Overall Band Score</p>
+                        <p id="overall-score" class="band-score text-blue-800 mt-1">N/A</p>
+                        <p id="user-id-display" class="text-xs text-gray-500 mt-2">User ID: N/A</p>
+                    </div>
+
+                    <!-- Detailed Feedback -->
+                    <h3 class="text-2xl font-semibold text-gray-800 border-b pb-2 mb-4">Detailed Feedback</h3>
+                    <div id="feedback-detail" class="space-y-6">
+                        <!-- Content injected here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module">
+        // =========================================================
+        // STEP 2: FIREBASE & AUTH SETUP (MANDATORY GLOBALS)
+        // =========================================================
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Set Firebase logging level to help beginners debug in the console
+        setLogLevel('debug');
+
+        // Global variables provided by the Canvas environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db;
+        let auth;
+        let userId = null;
+        let isAuthReady = false;
+
+        if (firebaseConfig) {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+
+            // Authentication Listener and Sign-In Logic
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    userId = user.uid;
+                    document.getElementById('user-id-display').textContent = `User ID: ${userId}`;
+                    console.log("Firebase Auth Ready. User ID:", userId);
+                    isAuthReady = true;
+                } else {
+                    // Try to sign in with the custom token if available
+                    if (initialAuthToken) {
+                        signInWithCustomToken(auth, initialAuthToken).catch(error => {
+                            console.error("Custom Token Sign-In Failed. Signing in anonymously.", error);
+                            signInAnonymously(auth);
+                        });
+                    } else {
+                        // Fallback to anonymous sign-in if no token is provided
+                        signInAnonymously(auth);
+                    }
+                }
+            });
+        } else {
+            console.error("Firebase config is missing. Data persistence will not work.");
+        }
+        
+        // Utility function for delay in exponential backoff
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        // =========================================================
+        // STEP 3: THE GEMINI API LOGIC (THE SMART EXAMINER)
+        // =========================================================
+
+        /**
+         * The core function to send the essays to Gemini and get structured feedback.
+         * @param {string} task1Prompt The prompt for Task 1.
+         * @param {string} task1Essay The user's essay for Task 1.
+         * @param {string} task2Prompt The prompt for Task 2.
+         * @param {string} task2Essay The user's essay for Task 2.
+         * @returns {Promise<Object|null>} The structured JSON response or null on failure.
+         */
+        async function getIELTSFeedback(task1Prompt, task1Essay, task2Prompt, task2Essay) {
+            const apiKey = ""; // Canvas environment will provide the API key
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+            // Define the strict structure the LLM MUST follow for its output (JSON Schema)
+            const responseSchema = {
+                type: "OBJECT",
+                properties: {
+                    task1: {
+                        type: "OBJECT",
+                        properties: {
+                            overall_band_score: { type: "NUMBER", description: "Overall IELTS band score for Task 1 (e.g., 6.5, 7.0). Must be between 1.0 and 9.0, rounded to the nearest 0.5." },
+                            task_achievement_score: { type: "NUMBER" },
+                            coherence_cohesion_score: { type: "NUMBER" },
+                            lexical_resource_score: { type: "NUMBER" },
+                            grammatical_accuracy_score: { type: "NUMBER" },
+                            detailed_feedback: { type: "STRING", description: "Comprehensive advice to improve the score." },
+                            corrections: { type: "STRING", description: "Specific grammatical and lexical mistakes found in the text." }
+                        },
+                        required: ["overall_band_score", "task_achievement_score", "coherence_cohesion_score", "lexical_resource_score", "grammatical_accuracy_score", "detailed_feedback", "corrections"]
+                    },
+                    task2: {
+                        type: "OBJECT",
+                        properties: {
+                            overall_band_score: { type: "NUMBER", description: "Overall IELTS band score for Task 2 (e.g., 6.5, 7.0). Must be between 1.0 and 9.0, rounded to the nearest 0.5." },
+                            task_response_score: { type: "NUMBER" },
+                            coherence_cohesion_score: { type: "NUMBER" },
+                            lexical_resource_score: { type: "NUMBER" },
+                            grammatical_accuracy_score: { type: "NUMBER" },
+                            detailed_feedback: { type: "STRING", description: "Comprehensive advice to improve the score." },
+                            corrections: { type: "STRING", description: "Specific grammatical and lexical mistakes found in the text." }
+                        },
+                        required: ["overall_band_score", "task_response_score", "coherence_cohesion_score", "lexical_resource_score", "grammatical_accuracy_score", "detailed_feedback", "corrections"]
+                    }
+                },
+                required: ["task1", "task2"]
+            };
+
+            // Set the model's persona and rules
+            const systemPrompt = `You are a Senior IELTS Examiner. Your task is to rigorously assess the provided Task 1 and Task 2 writing samples against the official IELTS public band descriptors. 
+            
+            1. Score each essay individually (0-9) on the four criteria: Task Achievement/Response, Coherence and Cohesion, Lexical Resource, and Grammatical Range and Accuracy. Use increments of 0.5.
+            2. The overall band score for each task must be the average of the four criteria, rounded to the nearest 0.5 (where 0.25 rounds up to 0.5, and 0.75 rounds up to the next whole number).
+            3. Provide detailed feedback that specifically addresses how to elevate the score to the next half-band, focusing on the weakest criteria.
+            4. Provide specific examples of grammatical, spelling, or lexical errors in the 'corrections' section.
+            5. Your output MUST be a JSON object conforming precisely to the provided schema. Do not include any introductory or explanatory text outside the JSON.`;
+
+            // The query combines both tasks
+            const userQuery = `Task 1 Prompt: ${task1Prompt}\nTask 1 Essay: ${task1Essay}\n\nTask 2 Prompt: ${task2Prompt}\nTask 2 Essay: ${task2Essay}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: responseSchema,
+                },
+            };
+
+            let result = null;
+            let retries = 0;
+            const maxRetries = 5;
+
+            while (retries < maxRetries) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const jsonResult = await response.json();
+                    
+                    if (jsonResult.candidates && jsonResult.candidates.length > 0) {
+                        const jsonText = jsonResult.candidates[0].content.parts[0].text;
+                        result = JSON.parse(jsonText);
+                        break; // Success
+                    }
+                } catch (error) {
+                    console.error(`API Call Failed (Attempt ${retries + 1}):`, error);
+                    retries++;
+                    if (retries < maxRetries) {
+                        const delay = Math.pow(2, retries) * 1000; // Exponential backoff (1s, 2s, 4s, etc.)
+                        await sleep(delay);
+                    } else {
+                        throw new Error("API call failed after multiple retries.");
+                    }
+                }
+            }
+            return result;
+        }
+
+        // =========================================================
+        // STEP 4: DATA PERSISTENCE (FIRESTORE SAVE)
+        // =========================================================
+
+        /**
+         * Saves the full report to the user's private Firestore collection.
+         * @param {Object} report The full report object returned by the LLM.
+         */
+        async function saveReportToFirestore(report) {
+            if (!isAuthReady || !userId || !db) {
+                console.warn("Authentication not ready or Firestore not initialized. Report not saved.");
+                return;
+            }
+            
+            try {
+                // Define the document path: /artifacts/{appId}/users/{userId}/ielts_reports/{docId}
+                const reportCollectionRef = collection(db, 'artifacts', appId, 'users', userId, 'ielts_reports');
+                
+                // Add metadata to the report
+                const reportData = {
+                    ...report,
+                    timestamp: serverTimestamp(),
+                    task1Prompt: document.getElementById('task1-prompt').value,
+                    task2Prompt: document.getElementById('task2-prompt').value,
+                    task1Essay: document.getElementById('task1-essay').value,
+                    task2Essay: document.getElementById('task2-essay').value,
+                };
+
+                // Use a simple setDoc with a unique ID to save the document
+                const newDocRef = doc(reportCollectionRef);
+                await setDoc(newDocRef, reportData);
+                console.log("Report saved successfully to Firestore with ID:", newDocRef.id);
+
+            } catch (e) {
+                console.error("Error saving document to Firestore:", e);
+            }
+        }
+
+
+        // =========================================================
+        // STEP 5: UI LOGIC AND EVENT HANDLERS
+        // =========================================================
+
+        const checkButton = document.getElementById('check-button');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const initialMessage = document.getElementById('initial-message');
+        const resultsContent = document.getElementById('results-content');
+        const overallScoreDisplay = document.getElementById('overall-score');
+        const feedbackDetail = document.getElementById('feedback-detail');
+        const wordCountError = document.getElementById('word-count-error');
+
+
+        // Function to count words
+        const countWords = (text) => text.trim().split(/\s+/).filter(Boolean).length;
+
+
+        // Main click handler
+        checkButton.addEventListener('click', async () => {
+            const task1Prompt = document.getElementById('task1-prompt').value;
+            const task1Essay = document.getElementById('task1-essay').value;
+            const task2Prompt = document.getElementById('task2-prompt').value;
+            const task2Essay = document.getElementById('task2-essay').value;
+
+            const t1WordCount = countWords(task1Essay);
+            const t2WordCount = countWords(task2Essay);
+
+            // Basic Word Count Validation (Crucial for Task Achievement score)
+            if (t1WordCount < 150 || t2WordCount < 250) {
+                wordCountError.classList.remove('hidden');
+                return;
+            } else {
+                wordCountError.classList.add('hidden');
+            }
+
+            // Show loading state
+            checkButton.disabled = true;
+            checkButton.textContent = 'Examining...';
+            initialMessage.classList.add('hidden');
+            resultsContent.classList.add('hidden');
+            loadingSpinner.classList.remove('hidden');
+
+            try {
+                const report = await getIELTSFeedback(task1Prompt, task1Essay, task2Prompt, task2Essay);
+
+                if (report) {
+                    // Calculate the final overall average of T1 and T2 (T2 is double-weighted)
+                    // Overall = (T1_Score + T2_Score * 2) / 3
+                    const finalAverage = (report.task1.overall_band_score + report.task2.overall_band_score * 2) / 3;
+                    
+                    // Rounding logic for overall score (to nearest 0.5)
+                    const roundedScore = Math.round(finalAverage * 2) / 2;
+                    overallScoreDisplay.textContent = roundedScore.toFixed(1);
+
+                    // Display the detailed results
+                    displayResults(report);
+
+                    // Save the report to Firestore asynchronously
+                    saveReportToFirestore(report);
+                } else {
+                    alert('Failed to get a structured report from the examiner. Please try again.');
+                }
+            } catch (error) {
+                console.error("Critical error during analysis:", error);
+                alert(`An error occurred: ${error.message}. Check the console for details.`);
+            } finally {
+                // Restore button state
+                checkButton.disabled = false;
+                checkButton.textContent = 'Check My Score';
+                loadingSpinner.classList.add('hidden');
+                resultsContent.classList.remove('hidden');
+            }
+        });
+
+        /**
+         * Renders the structured data from the LLM into the results panel.
+         * @param {Object} report The parsed JSON report.
+         */
+        function displayResults(report) {
+            feedbackDetail.innerHTML = '';
+            
+            // Function to render feedback for a single task
+            const renderTaskFeedback = (taskName, taskData) => {
+                const taskElement = document.createElement('div');
+                taskElement.className = 'p-5 bg-white rounded-xl shadow-md border border-gray-100';
+                
+                // Determine if it's Task Response or Task Achievement
+                const trLabel = taskName === 'Task 1' ? 'Task Achievement' : 'Task Response';
+                const trScoreKey = taskName === 'Task 1' ? 'task_achievement_score' : 'task_response_score';
+
+                taskElement.innerHTML = `
+                    <h4 class="text-xl font-bold text-gray-700 mb-3">${taskName} Band Score: <span class="text-blue-600">${taskData.overall_band_score.toFixed(1)}</span></h4>
+                    
+                    <div class="grid grid-cols-2 gap-4 text-sm mb-4">
+                        <p class="criteria-score">${trLabel}: <span class="text-blue-500">${taskData[trScoreKey].toFixed(1)}</span></p>
+                        <p class="criteria-score">Coherence & Cohesion: <span class="text-blue-500">${taskData.coherence_cohesion_score.toFixed(1)}</span></p>
+                        <p class="criteria-score">Lexical Resource: <span class="text-blue-500">${taskData.lexical_resource_score.toFixed(1)}</span></p>
+                        <p class="criteria-score">Grammatical Accuracy: <span class="text-blue-500">${taskData.grammatical_accuracy_score.toFixed(1)}</span></p>
+                    </div>
+
+                    <h5 class="font-semibold text-gray-700 mt-4 mb-2">Examiner's Detailed Feedback:</h5>
+                    <p class="text-gray-600 mb-4 whitespace-pre-line">${taskData.detailed_feedback}</p>
+
+                    <h5 class="font-semibold text-gray-700 mt-4 mb-2">Specific Corrections:</h5>
+                    <div class="p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm whitespace-pre-line">
+                        ${taskData.corrections || 'No major structural or lexical corrections identified.'}
+                    </div>
+                `;
+                feedbackDetail.appendChild(taskElement);
+            };
+
+            renderTaskFeedback('Task 1', report.task1);
+            renderTaskFeedback('Task 2', report.task2);
+        }
+    </script>
+</body>
+</html>
